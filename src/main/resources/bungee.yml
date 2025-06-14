@@ -1,0 +1,11 @@
+name: PrivateServerSystem
+version: 1.0.0
+description: A BungeeCord plugin for creating, managing, and joining private servers.
+main: net.hauntedstudio.ps.bungee.PS
+author: UAArthur
+
+commands:
+  privateserver:
+    description: Manage private servers.
+    usage: /<command> <create|delete|join|list>
+    aliases: [ps, pserver, privatServer]

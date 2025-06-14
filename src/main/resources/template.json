@@ -1,0 +1,8 @@
+{
+  "id": "default-template",
+  "name": "Default Template",
+  "description": "A default template",
+  "version": "1.0",
+  "doesNeedPermissions": false,
+  "tags": []
+}
