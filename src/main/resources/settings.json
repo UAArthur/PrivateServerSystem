@@ -1,0 +1,22 @@
+{
+  "maxServersPerPlayer": 3,
+  "defaultMaxPlayers": 10,
+  "allowPublicServers": true,
+  "debugMode": true,
+  "serverNamePrefix": "PS-",
+  "defaultTemplateId": "default-template",
+  "serverPortRange": {
+    "min": 25566,
+    "max": 25600
+  },
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "database": "private_servers",
+    "user": "root",
+    "password": "password"
+  },
+  "maxServersOnline": 100,
+  "useAutomaticRestart": true,
+  "automaticRestartInterval": 3600
+}

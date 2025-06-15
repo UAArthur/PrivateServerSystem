@@ -1,6 +1,7 @@
 package net.hauntedstudio.ps.bungee.commands;
 
 import net.hauntedstudio.ps.bungee.PS;
+import net.hauntedstudio.ps.bungee.models.Server;
 import net.hauntedstudio.ps.bungee.models.Template;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -11,9 +12,11 @@ import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class privateServer_CMD extends Command implements TabExecutor {
 
@@ -41,6 +44,8 @@ public class privateServer_CMD extends Command implements TabExecutor {
         switch (subCommand) {
             case "template" -> handleTemplateCommand(player, args);
             case "create" -> handleCreateCommand(player, args);
+            case "start" -> handleStartCommand(player, args);
+            case  "stop" -> handleStopCommand(player, args);
             case "help" -> sendHelp(player);
             default -> player.sendMessage("§cUnknown action. Use §e/privateServer help §cfor a list of commands.");
         }
@@ -65,16 +70,40 @@ public class privateServer_CMD extends Command implements TabExecutor {
         player.sendMessage(new TextComponent("§8§m--------------------------------------------------"));
     }
 
-    private void handleCreateCommand(ProxiedPlayer player, String[] args) {
-        if (!hasPermission(player, "privatserver.command.create")) return;
+    private void handleStopCommand(ProxiedPlayer player, String[] args) {
+        if (!hasPermission(player, "privatserver.command.stop")) return;
 
-        if (args.length < 3) {
-            player.sendMessage("§cUsage: /privateServer create <template> <name>");
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /privateServer stop <name>");
             return;
         }
 
-        String templateName = args[1];
-        String serverName = args[2];
+        String serverName = args[1];
+        var server = plugin.getServerManager().getServerByName(player, serverName);
+        if (server == null) {
+            player.sendMessage("§cPrivate server not found: " + serverName);
+            return;
+        }
+
+        plugin.getServerManager().stopAllServers();
+        player.sendMessage("§aPrivate server " + serverName + " stopped successfully!");
+    }
+
+    private void handleCreateCommand(ProxiedPlayer player, String[] args) {
+        if (!hasPermission(player, "privatserver.command.create")) return;
+
+        String templateName;
+        String serverName;
+        if (args.length == 2) {
+            templateName = this.plugin.getSettingsManager().getSettings().getDefaultTemplateId();
+            serverName = args[1];
+        } else if (args.length > 2) {
+            templateName = args[1];
+            serverName = args[2];
+        } else {
+            player.sendMessage("§cUsage: /privateServer create <template> <name>");
+            return;
+        }
 
         Template template = plugin.getTemplateManager().getTemplateByName(templateName);
         if (template == null) {
@@ -96,7 +125,45 @@ public class privateServer_CMD extends Command implements TabExecutor {
             } else {
                 player.sendMessage("§cFailed to create private server.");
             }
+            plugin.getServerManager().startServer(player, serverName);
         });
+    }
+
+    private void handleStartCommand(ProxiedPlayer player, String[] args) {
+        if (!hasPermission(player, "privatserver.command.start")) return;
+
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /privateServer start <name> or /privateServer start <username> <name>");
+            return;
+        }
+
+        if (args.length == 2) {
+            // Starting own server
+            String serverName = args[1];
+            plugin.getServerManager().startServer(player, serverName);
+        } else {
+            // Starting someone else's server
+            if (!hasPermission(player, "privatserver.command.start.others")) {
+                player.sendMessage("§cYou don't have permission to start other players' servers.");
+                return;
+            }
+
+            String username = args[1];
+            String serverName = args[2];
+
+            UUID targetPlayerUuid = plugin.getServerManager().getUUIDFromUsername(username);
+            if (targetPlayerUuid == null) {
+                player.sendMessage("§cPlayer not found: " + username);
+                return;
+            }
+
+            if (!plugin.getServerManager().hasPlayerServer(targetPlayerUuid, serverName)) {
+                player.sendMessage("§cServer '" + serverName + "' not found for player " + username);
+                return;
+            }
+
+            plugin.getServerManager().startServer(player, targetPlayerUuid, serverName);
+        }
     }
 
     private void handleTemplateCommand(ProxiedPlayer player, String[] args) {
@@ -186,23 +253,53 @@ public class privateServer_CMD extends Command implements TabExecutor {
         if (!(sender instanceof ProxiedPlayer player)) {
             return completions;
         }
-        ProxiedPlayer p = (ProxiedPlayer) sender;
-        if (!hasPermission(p, "privatserver.player") && !hasPermission(p, "privatserver.admin")) {
+
+        if (!hasPermission(player, "privatserver.player") && !hasPermission(player, "privatserver.admin")) {
             return completions;
         }
+
         if (args.length == 1) {
-            completions = Arrays.asList("create", "delete", "list", "join", "leave", "info", "template", "help");
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("template") && hasPermission(p, "privatserver.command.template")) {
-            completions = Arrays.asList("list", "create", "delete", "info");
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("info") && hasPermission(p, "privatserver.command.template.info")) {
-            completions = plugin.getTemplateManager().getTemplates().stream()
-                    .map(Template::getId)
-                    .toList();
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("delete") && hasPermission(p, "privatserver.command.template.delete")) {
-            completions = plugin.getTemplateManager().getTemplates().stream()
-                    .map(Template::getName)
-                    .toList();
+            completions = Arrays.asList("create", "delete", "list", "join", "leave", "info", "template", "help", "start", "stop");
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("template") && hasPermission(player, "privatserver.command.template")) {
+                completions = Arrays.asList("list", "create", "delete", "info");
+            } else if (args[0].equalsIgnoreCase("start")) {
+                if (hasPermission(player, "privatserver.command.start.others")) {
+                    List<String> finalCompletions = completions;
+                    plugin.getProxy().getPlayers().forEach(p -> finalCompletions.add(p.getName()));
+
+                    // Also add the user's own server names
+                    Server[] servers = plugin.getServerManager().getPlayerServers(player);
+                    for (Server server : servers) {
+                        completions.add(server.getName());
+                    }
+                } else {
+                    // Only add the user's own server names
+                    Server[] servers = plugin.getServerManager().getPlayerServers(player);
+                    for (Server server : servers) {
+                        completions.add(server.getName());
+                    }
+                }
+            }
+            // Other existing tab completions...
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("start") && hasPermission(player, "privatserver.command.start.others")) {
+                String username = args[1];
+                UUID targetPlayerUuid = plugin.getServerManager().getUUIDFromUsername(username);
+                if (targetPlayerUuid != null) {
+                    File serverDir = new File(plugin.getDataFolder(), "servers/" + targetPlayerUuid);
+                    if (serverDir.exists() && serverDir.isDirectory()) {
+                        File[] serverDirs = serverDir.listFiles(File::isDirectory);
+                        if (serverDirs != null) {
+                            for (File dir : serverDirs) {
+                                completions.add(dir.getName());
+                            }
+                        }
+                    }
+                }
+            }
         }
+
         return completions;
     }
 }

@@ -4,5 +4,6 @@
   "description": "A default template",
   "version": "1.0",
   "doesNeedPermissions": false,
+  "maxPlayers": 10,
   "tags": []
 }

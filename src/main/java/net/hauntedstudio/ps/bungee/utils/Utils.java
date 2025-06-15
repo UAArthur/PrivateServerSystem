@@ -1,6 +1,11 @@
 package net.hauntedstudio.ps.bungee.utils;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Utils {
+    private final Set<Integer> usedPorts = new HashSet<>();
+
 
     public String formatMessage(String message, Object... args) {
         return String.format(message, args);
@@ -10,16 +15,17 @@ public class Utils {
         return input.replaceAll("[^a-zA-Z0-9_\\- ]", "");
     }
 
-    public boolean isValidPort(int port) {
-        return port > 0 && port <= 65535;
-    }
-
-    public int findFreePort() {
-        try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
-            return socket.getLocalPort();
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("No free port found", e);
+    public synchronized int findFreePortInRange(int minPort, int maxPort) {
+        for (int port = minPort; port <= maxPort; port++) {
+            if (usedPorts.contains(port)) continue;
+            try (java.net.ServerSocket socket = new java.net.ServerSocket(port)) {
+                socket.setReuseAddress(true);
+                usedPorts.add(port);
+                return port;
+            } catch (java.io.IOException ignored) {
+            }
         }
+        throw new RuntimeException("No free port found in range " + minPort + "-" + maxPort);
     }
 
     public boolean isFreePort(int port) {

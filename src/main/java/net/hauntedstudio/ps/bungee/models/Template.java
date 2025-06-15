@@ -14,6 +14,7 @@ public class Template {
     private String description;
     private String version;
     private boolean doesNeedPermissions;
+    private int maxPlayers;
     private List<String> tags = List.of();
 
     private transient String path;
