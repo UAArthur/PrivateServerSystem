@@ -52,13 +52,6 @@ public class PSClient {
                             int serverPort = Integer.parseInt(this.plugin.getServerManager().loadServerProperties(serverDir).getProperty("server-port"));
                             ServerInfo serverInfo = this.plugin.getServerManager().addServer(psData.get("OwnerUsername").getAsString(), "127.0.0.1", serverPort);
 
-                            // Add null check before connecting player
-
-                            System.out.println(this.plugin.getProxy().getPlayers().size() + " players online");
-
-                            this.plugin.getProxy().getPlayers().forEach(player ->
-                                    System.out.println("Player: " + player.getName() + " UUID: " + player.getUniqueId())
-                            );
                             try {
                                 java.util.UUID playerUUID = java.util.UUID.fromString(parts[1]);
                                 var player = this.plugin.getProxy().getPlayer(playerUUID);
@@ -68,7 +61,6 @@ public class PSClient {
                                     plugin.getLoger().error("Cannot connect player to server: Player with UUID " + parts[1] + " not found");
                                 }
                             } catch (IllegalArgumentException e) {
-                                // If the string isn't a valid UUID, try looking up by name as a fallback
                                 var player = this.plugin.getProxy().getPlayer(parts[1]);
                                 if (player != null) {
                                     player.connect(serverInfo);

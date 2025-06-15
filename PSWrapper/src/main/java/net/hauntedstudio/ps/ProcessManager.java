@@ -10,8 +10,6 @@ public class ProcessManager {
     private final Map<String, Process> runningServers = new ConcurrentHashMap<>();
 
     public void startServer(String uuid, String serverName, File serverDir) throws IOException {
-        // Only use serverName as the key
-        String key = serverName;
         File jarFile = new File(serverDir, "spigot.jar");
         if (!jarFile.exists()) throw new IOException("spigot.jar not found in " + serverDir);
 
@@ -26,7 +24,7 @@ public class ProcessManager {
         pb.redirectErrorStream(true);
 
         Process process = pb.start();
-        runningServers.put(key, process);
+        runningServers.put(serverName, process);
 
         new Thread(() -> {
             try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {

@@ -281,7 +281,6 @@ public class privateServer_CMD extends Command implements TabExecutor {
                     }
                 }
             }
-            // Other existing tab completions...
         } else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("start") && hasPermission(player, "privatserver.command.start.others")) {
                 String username = args[1];
