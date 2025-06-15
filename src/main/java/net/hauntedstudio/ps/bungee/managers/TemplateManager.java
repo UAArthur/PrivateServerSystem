@@ -54,8 +54,8 @@ public class TemplateManager {
                         Template template = gson.fromJson(reader, Template.class);
                         if (template != null) {
                             template.setPath(dir.getAbsolutePath());
-                            template.setServerFile(new File(dir, "spigot.jar"));
-                            template.setServerPropertiesFile(new File(dir, "server.properties"));
+                            template.setServerFile(new File(dir, "spigot.jar").getAbsoluteFile());
+                            template.setServerPropertiesFile(new File(dir, "server.properties").getAbsoluteFile());
                             templates.add(template);
                             plugin.getLoger().debug("Loaded template: " + template.getName());
                         } else {
