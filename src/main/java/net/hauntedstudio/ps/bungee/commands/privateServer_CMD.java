@@ -45,7 +45,8 @@ public class privateServer_CMD extends Command implements TabExecutor {
             case "template" -> handleTemplateCommand(player, args);
             case "create" -> handleCreateCommand(player, args);
             case "start" -> handleStartCommand(player, args);
-            case  "stop" -> handleStopCommand(player, args);
+            case "stop" -> handleStopCommand(player, args);
+            case "admin" -> sendAdminCommand(player, args);
             case "help" -> sendHelp(player);
             default -> player.sendMessage("§cUnknown action. Use §e/privateServer help §cfor a list of commands.");
         }
@@ -58,15 +59,41 @@ public class privateServer_CMD extends Command implements TabExecutor {
         player.sendMessage(new TextComponent("§6§lPrivateServer §8§l» §7Commands"));
         player.sendMessage(new TextComponent("§8§m--------------------------------------------------"));
 
-        sendHelpLine(player, "§6• §e/privateServer create <template> <name> §7- Create a new private server", "/privateServer create ", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer delete <name> §7- Delete a private server", "/privateServer delete ", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer list §7- List all your private servers", "/privateServer list", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer join <name> §7- Join a private server", "/privateServer join ", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer leave §7- Leave your current private server", "/privateServer leave", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer info <name> §7- Get info about a private server", "/privateServer info ", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer template <action> [args] §7- Manage templates", "/privateServer template ", "Click to suggest this command");
-        sendHelpLine(player, "§6• §e/privateServer help §7- Show this help message", "/privateServer help", "Click to suggest this command");
+        // Only show commands the player has permission to use
+        if (hasPermission(player, "privatserver.command.create"))
+            sendHelpLine(player, "§6• §e/privateServer create <template> <name> §7- Create a new private server", "/privateServer create ", "Click to suggest this command");
 
+        if (hasPermission(player, "privatserver.command.delete"))
+            sendHelpLine(player, "§6• §e/privateServer delete <name> §7- Delete a private server", "/privateServer delete ", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.list"))
+            sendHelpLine(player, "§6• §e/privateServer list §7- List all your private servers", "/privateServer list", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.join"))
+            sendHelpLine(player, "§6• §e/privateServer join <name> §7- Join a private server", "/privateServer join ", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.leave"))
+            sendHelpLine(player, "§6• §e/privateServer leave §7- Leave your current private server", "/privateServer leave", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.info"))
+            sendHelpLine(player, "§6• §e/privateServer info <name> §7- Get info about a private server", "/privateServer info ", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.template"))
+            sendHelpLine(player, "§6• §e/privateServer template <action> [args] §7- Manage templates", "/privateServer template ", "Click to suggest this command");
+
+        if (hasPermission(player, "privatserver.command.start")) {
+            sendHelpLine(player, "§6• §e/privateServer start <name> §7- Start your private server", "/privateServer start ", "Click to suggest this command");
+        }
+
+        if (hasPermission(player, "privatserver.command.stop")) {
+            sendHelpLine(player, "§6• §e/privateServer stop <name> §7- Stop your private server", "/privateServer stop ", "Click to suggest this command");
+        }
+
+        if (hasPermission(player, "privateserver.admin")) {
+            sendHelpLine(player, "§6• §e/privateServer admin <action> [args] §7- Admin actions", "/privateServer admin ", "Click to suggest this command");
+        }
+
+        sendHelpLine(player, "§6• §e/privateServer help §7- Show this help message", "/privateServer help", "Click to suggest this command");
         player.sendMessage(new TextComponent("§8§m--------------------------------------------------"));
     }
 
@@ -229,6 +256,41 @@ public class privateServer_CMD extends Command implements TabExecutor {
         player.sendMessage("§8§m--------------------------------------------------");
     }
 
+    private void sendAdminCommand(ProxiedPlayer player, String[] args) {
+        if (!hasPermission(player, "privateserver.admin")) {
+            player.sendMessage("§cYou don't have permission to use admin commands.");
+            return;
+        }
+
+        if (args.length < 2) {
+            sendAdminHelp(player);
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+
+        switch (action) {
+            case "list" -> {
+                player.sendMessage("§cAdmin list command not implemented yet.");
+            }
+            case "info" -> {
+                player.sendMessage("§cAdmin info command not implemented yet.");
+            }
+            default -> player.sendMessage("§cUnknown admin action: " + action);
+        }
+    }
+
+    private void sendAdminHelp(ProxiedPlayer player) {
+        player.sendMessage("§8§m---------------- §6Admin Commands §8§m----------------");
+        player.sendMessage("§6• §e/privateServer admin list §7- List all private servers");
+        player.sendMessage("§6• §e/privateServer admin info <name> §7- Get info about a private server");
+        player.sendMessage("§6• §e/privateServer admin delete <name> §7- Delete a private server");
+        player.sendMessage("§6• §e/privateServer admin wrappers §7- List all PSWrapper connections");
+        player.sendMessage("§6• §e/privateServer admin resources §7- List all resources");
+        player.sendMessage("§8§m--------------------------------------------------");
+    }
+
+
     private void sendHelpLine(ProxiedPlayer player, String text, String suggestCommand, String hoverText) {
         TextComponent component = new TextComponent(text);
         if (hoverText != null) {
@@ -259,7 +321,7 @@ public class privateServer_CMD extends Command implements TabExecutor {
         }
 
         if (args.length == 1) {
-            completions = Arrays.asList("create", "delete", "list", "join", "leave", "info", "template", "help", "start", "stop");
+            completions = Arrays.asList("create", "delete", "list", "online", "join", "leave", "info", "template", "help", "start", "stop");
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("template") && hasPermission(player, "privatserver.command.template")) {
                 completions = Arrays.asList("list", "create", "delete", "info");
