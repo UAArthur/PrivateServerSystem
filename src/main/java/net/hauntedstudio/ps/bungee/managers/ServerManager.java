@@ -2,6 +2,7 @@ package net.hauntedstudio.ps.bungee.managers;
 
 import com.google.gson.Gson;
 import gnu.trove.impl.sync.TSynchronizedShortByteMap;
+import lombok.Getter;
 import net.hauntedstudio.ps.bungee.PS;
 import net.hauntedstudio.ps.bungee.models.PSInfo;
 import net.hauntedstudio.ps.bungee.models.Server;
@@ -21,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ServerManager {
     private final PS plugin;
 
+    @Getter
     private final HashMap<ProxiedPlayer, Server> servers = new HashMap<>();
 
     public ServerManager(PS plugin) {
@@ -86,7 +88,6 @@ public class ServerManager {
         //Check if player has permission to use the template
         if (template.doesNeedPermissions() && !hasPermission(player, "privatserver.template." + template.getId())) {
             plugin.getLoger().error("Player does not have permission to use this template: " + template.getId());
-            // player.sendMessage is already called in hasPermission
             return null;
         }
 
@@ -111,6 +112,7 @@ public class ServerManager {
 
         Server server = new Server();
         server.setOwnerUUID(player.getUniqueId().toString());
+        server.setOwnerUsername(player.getDisplayName());
         server.setName(serverName);
         server.setAddress("127.0.0.1");
         server.setPort(port);
@@ -257,7 +259,8 @@ public class ServerManager {
         }
 
         plugin.getLoger().debug("Starting server for player UUID: " + targetPlayerUuid + " with name: " + serverName);
-        plugin.getPsClient().sendMessage("startServer " + targetPlayerUuid + " " + serverDir.getAbsolutePath());
+//        plugin.getPsClient().sendMessage("startServer " + targetPlayerUuid + " " + serverDir.getAbsolutePath());
+        plugin.getPsClient().sendStartServerCommand(String.valueOf(targetPlayerUuid), serverName);
 
         Server server = getServerByName(targetPlayerUuid, serverName);
         if (server == null) {
@@ -271,7 +274,7 @@ public class ServerManager {
                         ProxyServer.getInstance().getPlayer(targetPlayerUuid).getName() : "unknown") + "...");
     }
 
-    // Maintain backward compatibility with existing method
+    // Start server for the player
     public void startServer(ProxiedPlayer player, String serverName) {
         if (!hasPlayerServer(player, serverName)) {
             player.sendMessage("§cYou don't have a server with this name.");
@@ -303,8 +306,23 @@ public class ServerManager {
             return null;
         }
 
+        String ownerUsername = "";
+        File psJsonFile = new File(serverDir, "ps.json");
+        if (psJsonFile.exists()) {
+            try (FileReader reader = new FileReader(psJsonFile)) {
+                Gson gson = new Gson();
+                PSInfo psInfo = gson.fromJson(reader, PSInfo.class);
+                if (psInfo != null) {
+                    ownerUsername = psInfo.getOwnerUsername();
+                }
+            } catch (IOException e) {
+                plugin.getLoger().error("Failed to read ps.json: " + e.getMessage());
+            }
+        }
+
         Server server = new Server();
         server.setOwnerUUID(playerUuid.toString());
+        server.setOwnerUsername(ownerUsername);
         server.setName(serverName);
         server.setAddress(loadServerProperties(serverDir).getProperty("address"));
         server.setPort(Integer.parseInt(loadServerProperties(serverDir).getProperty("server-port", "25565")));
@@ -321,6 +339,8 @@ public class ServerManager {
     public void stopAllServers() {
         plugin.getLoger().debug("Stopping all servers...");
         plugin.getPsClient().sendMessage("stopAllServers");
+        servers.clear();
+        plugin.getLoger().debug("All servers stopped.");
     }
 
     private boolean isServerRunning(UUID playerUuid, String serverName) {
@@ -421,7 +441,6 @@ public class ServerManager {
             return player.getUniqueId();
         }
 
-        // Check offline players by iterating through server directories
         File serversDir = new File(plugin.getDataFolder(), "servers");
         if (serversDir.exists() && serversDir.isDirectory()) {
             File[] playerDirs = serversDir.listFiles();
@@ -433,15 +452,24 @@ public class ServerManager {
                             String name = plugin.getProxy().getPlayer(uuid) != null ?
                                     plugin.getProxy().getPlayer(uuid).getName() : null;
 
-                            // If we found a match with an online player
                             if (name != null && name.equalsIgnoreCase(username)) {
                                 return uuid;
                             }
 
-                            // If no online player found, we could use an offline player cache here
-                            // This is where you'd implement username to UUID mapping for offline players
+                            File psJsonFile = new File(playerDir, "ps.json");
+                            if (psJsonFile.exists()) {
+                                try (FileReader reader = new FileReader(psJsonFile)) {
+                                    Gson gson = new Gson();
+                                    PSInfo psInfo = gson.fromJson(reader, PSInfo.class);
+                                    if (psInfo != null && psInfo.getOwnerUsername().equalsIgnoreCase(username)) {
+                                        return UUID.fromString(psInfo.getOwnerUUID());
+                                    }
+                                } catch (IOException e) {
+                                    plugin.getLoger().error("Failed to read ps.json for " + playerDir.getName() + ": " + e.getMessage());
+                                }
+                            }
+
                         } catch (IllegalArgumentException ignored) {
-                            // Not a valid UUID directory
                         }
                     }
                 }

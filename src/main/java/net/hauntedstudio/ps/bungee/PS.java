@@ -5,6 +5,7 @@ import net.hauntedstudio.ps.bungee.commands.privateServer_CMD;
 import net.hauntedstudio.ps.bungee.managers.ServerManager;
 import net.hauntedstudio.ps.bungee.managers.SettingsManager;
 import net.hauntedstudio.ps.bungee.managers.TemplateManager;
+import net.hauntedstudio.ps.bungee.messaging.PluginMessageHandler;
 import net.hauntedstudio.ps.bungee.utils.Logger;
 import net.hauntedstudio.ps.bungee.utils.Utils;
 import net.hauntedstudio.ps.bungee.wrapper.PSClient;
@@ -17,6 +18,9 @@ public class PS extends Plugin {
     private Logger logger;
     @Getter
     private PSClient psClient;
+    @Getter
+    private PluginMessageHandler messageHandler;
+
 
     //Managers
     @Getter
@@ -39,6 +43,8 @@ public class PS extends Plugin {
         this.serverManager = new ServerManager(this);
         this.templateManager = new TemplateManager(this);
         this.settingsManager = new SettingsManager(this);
+        //pluginmessage handler
+        messageHandler = new PluginMessageHandler(this);
     }
     @Override
     public void onEnable() {

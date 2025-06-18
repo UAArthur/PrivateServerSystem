@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class Server {
     private String ownerUUID;
+    private String ownerUsername;
     private String name;
     private String address;
     private int port;

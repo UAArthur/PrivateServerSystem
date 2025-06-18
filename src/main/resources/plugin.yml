@@ -1,0 +1,13 @@
+name: PrivatServerSystem
+version: 1.0.0
+main: net.hauntedstudio.ps.spigot.PS
+api-version: 1.20
+authors:
+  - NichtArthur
+
+commands:
+  privateserver:
+    description: Manage your private server
+    aliases: [ps]
+    permission: privatserver.use
+    permission-message: You do not have permission to use this command.
